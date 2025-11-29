@@ -1,2 +1,5 @@
 flask
 gunicorn
+flask-cors
+openai>=1.45.0
+
