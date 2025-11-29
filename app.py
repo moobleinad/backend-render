@@ -1,10 +1,16 @@
 from flask import Flask, request, jsonify
 import os
 from openai import OpenAI
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+@app.route("/")
+def root():
+    return "Backend funcionando wey!"
 
 @app.route("/hola")
 def hola():
@@ -12,14 +18,18 @@ def hola():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.json
-    mensaje = data.get("prompt", "")
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "No enviaste JSON"}), 400
+
+    prompt = data.get("prompt", "")
 
     try:
         respuesta = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "user", "content": mensaje}
+                {"role": "user", "content": prompt}
             ]
         )
 
