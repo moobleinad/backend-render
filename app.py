@@ -9,7 +9,7 @@ CORS(app)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ---------------------------------------------------
-# 🔥 PERMITIR QUE SE EMBEBA EN IFRAME (Blogger, etc.)
+# PERMITIR IFRAME (Blogger)
 # ---------------------------------------------------
 @app.after_request
 def allow_iframe(response):
@@ -18,71 +18,26 @@ def allow_iframe(response):
     return response
 
 # ---------------------------------------------------
-# 🔥 HTML DEL CHAT (para /widget)
+# WIDGET HTML (TRES COMILLAS BIEN CERRADAS)
 # ---------------------------------------------------
 WIDGET_HTML = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>ChatGPT Blogger</title>
+  <title>Chat GPT Blogger</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-    }
-    #chat-container {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-      box-sizing: border-box;
-    }
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      padding: 8px;
-      background: #ffffff;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-    .msg-user {
-      text-align: right;
-      margin: 6px 0;
-      color: #0b7285;
-      white-space: pre-wrap;
-    }
-    .msg-bot {
-      text-align: left;
-      margin: 6px 0;
-      color: #343a40;
-      white-space: pre-wrap;
-    }
-    #form {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    #input {
-      flex: 1;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-    #send-btn {
-      padding: 8px 14px;
-      border-radius: 6px;
-      border: none;
-      background: #0d6efd;
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-    }
+    body { margin: 0; font-family: Arial; background: #f5f5f5; }
+    #chat-container { height: 100vh; display: flex; flex-direction: column; padding: 10px; }
+    #messages { flex: 1; overflow-y: auto; border: 1px solid #ddd; padding: 8px; background: white; border-radius: 8px; }
+    .msg-user { text-align: right; margin: 6px 0; color: #0b7285; white-space: pre-wrap; }
+    .msg-bot  { text-align: left;  margin: 6px 0; color: #333; white-space: pre-wrap; }
+    #form { display: flex; gap: 8px; margin-top: 8px; }
+    #input { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
+    #send-btn { padding: 8px 14px; border-radius: 6px; border: none; background: #0d6efd; color: white; font-weight: 600; }
   </style>
 </head>
+
 <body>
   <div id="chat-container">
     <div id="messages"></div>
@@ -94,4 +49,5 @@ WIDGET_HTML = """
   </div>
 
   <script>
-    const form = document.getEle
+    const form = document.getElementById("form");
+    const input = document.g
