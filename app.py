@@ -26,7 +26,7 @@ def hola():
     return jsonify({"msg": "Render funciona wey!"})
 
 # -------------------------------------------
-# WIDGET HTML COMPLETO (ahora sí)
+# WIDGET HTML COMPLETO (CORREGIDO)
 # -------------------------------------------
 WIDGET_HTML = """
 <!DOCTYPE html>
@@ -36,10 +36,30 @@ WIDGET_HTML = """
   <title>ChatGPT Blogger</title>
   <style>
     body { margin: 0; font-family: Arial; background: #f5f5f5; }
-    #chat-container { height: 100%; display: flex; flex-direction: column; padding: 10px; }
-    #messages { flex: 1; overflow-y: auto; border: 1px solid #ddd; background: white; padding: 10px; border-radius: 8px; }
+
+    /* 🔥 Ajuste correcto para que no se pegue arriba */
+    #chat-container { 
+      height: 100%; 
+      display: flex; 
+      flex-direction: column; 
+      padding: 10px; 
+      box-sizing: border-box;
+    }
+
+    /* 🔥 Aquí agregué min-height */
+    #messages { 
+      flex: 1; 
+      min-height: 400px; 
+      overflow-y: auto; 
+      border: 1px solid #ddd; 
+      background: white; 
+      padding: 10px; 
+      border-radius: 8px; 
+    }
+
     .msg-user { text-align: right; color: #0b7285; white-space: pre-wrap; margin: 6px 0; }
     .msg-bot { text-align: left; color: #333; white-space: pre-wrap; margin: 6px 0; }
+
     #form { display: flex; gap: 10px; margin-top: 10px; }
     #input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 8px; }
     #send-btn { padding: 8px 14px; background: #0d6efd; color: white; border-radius: 8px; border: none; cursor: pointer; }
@@ -135,4 +155,3 @@ def chat():
 # -------------------------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
-
