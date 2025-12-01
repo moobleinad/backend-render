@@ -1,22 +1,38 @@
+# =======================================================
+#  CHATGPT PARA BLOGGER — BACKEND RENDER
+#  Versión simple (sin historial, sin favoritos)
+#  Con comentarios y títulos claros
+# =======================================================
+
 from flask import Flask, request, jsonify, render_template_string
 import os
 from openai import OpenAI
 from flask_cors import CORS
 
+# =======================================================
+# 1. CONFIGURACIÓN BASE DE FLASK
+# =======================================================
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # permite que Blogger llame al backend
 
+# Cliente OpenAI usando variable de entorno OPENAI_API_KEY
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# -------------------------------------------
-# PERMITIR IFRAME
-# -------------------------------------------
+
+# =======================================================
+# 2. PERMITIR QUE EL SITIO SE CARGUE EN IFRAMES
+#    (Necesario para Blogger o no se verá nada)
+# =======================================================
 @app.after_request
 def allow_iframe(response):
     response.headers["X-Frame-Options"] = "ALLOWALL"
     response.headers["Content-Security-Policy"] = "frame-ancestors *"
     return response
 
+
+# =======================================================
+# 3. ENDPOINTS DE PRUEBA
+# =======================================================
 @app.route("/")
 def root():
     return "Backend funcionando wey!"
@@ -25,9 +41,11 @@ def root():
 def hola():
     return jsonify({"msg": "Render funciona wey!"})
 
-# -------------------------------------------
-# WIDGET HTML PERFECTO PARA IFRAME DE 500px
-# -------------------------------------------
+
+# =======================================================
+# 4. WIDGET HTML (EL FRONTEND DEL CHAT)
+#    Versión simple — un solo panel de chat
+# =======================================================
 WIDGET_HTML = """
 <!DOCTYPE html>
 <html lang="es">
@@ -36,25 +54,32 @@ WIDGET_HTML = """
   <title>ChatGPT Blogger</title>
 
   <style>
+    /* ============================
+       ESTILOS GENERALES
+       ============================ */
     body {
       margin: 0;
       padding: 0;
       font-family: Arial;
       background: #f5f5f5;
       height: 100%;
-      overflow: hidden;
+      overflow: hidden;  /* mantiene siempre los 500px del iframe */
     }
 
-    /* CONTENEDOR TOTAL EXACTO DE 500px */
+    /* ============================
+       CONTENEDOR PRINCIPAL DEL CHAT
+       ============================ */
     #chat-container {
-      height: 500px;        /* 👈 EXACTO */
+      height: 500px;         /* altura exacta para que encaje en el iframe */
       display: flex;
       flex-direction: column;
-      box-sizing: border-box;
       padding: 10px;
+      box-sizing: border-box;
     }
 
-    /* ÁREA DE MENSAJES QUE SIEMPRE ENTRA */
+    /* ============================
+       ZONA DE MENSAJES
+       ============================ */
     #messages {
       flex: 1;
       overflow-y: auto;
@@ -78,13 +103,15 @@ WIDGET_HTML = """
       white-space: pre-wrap;
     }
 
-    /* INPUT FIJO SIEMPRE */
+    /* ============================
+       INPUT DEL CHAT + BOTÓN
+       ============================ */
     #form {
       display: flex;
       gap: 10px;
       margin-top: 10px;
-      height: 45px;       /* 👈 FIJO */
-      flex-shrink: 0;     /* 👈 NO SE ACHICA */
+      height: 45px;
+      flex-shrink: 0; /* evita que se achique */
     }
 
     #input {
@@ -108,10 +135,15 @@ WIDGET_HTML = """
 </head>
 
 <body>
+  <!-- ============================
+       ESTRUCTURA DEL CHAT
+       ============================ -->
   <div id="chat-container">
 
+    <!-- Caja donde se pintan los mensajes -->
     <div id="messages"></div>
 
+    <!-- Formulario para enviar mensajes -->
     <form id="form">
       <input id="input" autocomplete="off" placeholder="Escribe tu mensaje..." />
       <button id="send-btn" type="submit">Enviar</button>
@@ -119,21 +151,31 @@ WIDGET_HTML = """
 
   </div>
 
+  <!-- ============================
+       LÓGICA DEL CHAT (JAVASCRIPT)
+       ============================ -->
   <script>
     const form = document.getElementById("form");
     const input = document.getElementById("input");
     const messages = document.getElementById("messages");
 
+    /* ------------------------------------------
+       FUNCIÓN PARA AGREGAR UN MENSAJE AL CHAT
+       ------------------------------------------ */
     function addMessage(text, type) {
       const div = document.createElement("div");
       div.className = type === "user" ? "msg-user" : "msg-bot";
       div.textContent = text;
       messages.appendChild(div);
-      messages.scrollTop = messages.scrollHeight;
+      messages.scrollTop = messages.scrollHeight;  // baja al final
     }
 
+    /* ------------------------------------------
+       MANEJAR ENVÍO DEL MENSAJE
+       ------------------------------------------ */
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+
       const text = input.value.trim();
       if (!text) return;
 
@@ -160,16 +202,18 @@ WIDGET_HTML = """
 </html>
 """
 
-# -------------------------------------------
-# Mostrar widget
-# -------------------------------------------
+
+# =======================================================
+# 5. ENDPOINT PARA MOSTRAR EL WIDGET
+# =======================================================
 @app.route("/widget")
 def widget():
     return render_template_string(WIDGET_HTML)
 
-# -------------------------------------------
-# CHATGPT
-# -------------------------------------------
+
+# =======================================================
+# 6. ENDPOINT DEL CHAT (LÓGICA GPT)
+# =======================================================
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
@@ -191,8 +235,8 @@ def chat():
         return jsonify({"error": str(e)}), 400
 
 
-# -------------------------------------------
-# RUN
-# -------------------------------------------
+# =======================================================
+# 7. RUN SERVER (SOLO LOCAL)
+# =======================================================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
