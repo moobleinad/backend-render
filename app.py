@@ -45,6 +45,7 @@ def hola():
 
 # =======================================================
 #  WIDGET HTML (Frontend que se incrusta en Blogger)
+#  Incluye: sidebar izquierda (favoritos + historial) y chat a la derecha
 # =======================================================
 WIDGET_HTML = """
 <!DOCTYPE html>
@@ -55,23 +56,96 @@ WIDGET_HTML = """
 
   <style>
     /* ------------------------------
-       ESTILOS DEL CHAT
+       ESTILOS GENERALES
     ------------------------------ */
 
     body {
       margin: 0;
       padding: 0;
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       background: #f5f5f5;
     }
 
+    /* Layout principal: sidebar + chat */
+    #layout {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    /* ------------------------------
+       SIDEBAR IZQUIERDA
+    ------------------------------ */
+
+    #sidebar {
+      width: 28%;
+      min-width: 180px;
+      max-width: 260px;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-title {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-box {
+      border-radius: 6px;
+      padding: 6px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      background: #fafafa;
+      border: 1px solid #e5e5e5;
+    }
+
+    #favorites-list .favorite-item,
+    #history-list .history-item {
+      padding: 6px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+
+    #favorites-list .favorite-item {
+      background: #fff3cd;
+      border: 1px solid #ffeeba;
+    }
+
+    #favorites-list .favorite-item:hover {
+      background: #ffe8a1;
+    }
+
+    #history-list .history-item {
+      background: #f8f9fa;
+      border: 1px solid #e2e3e5;
+    }
+
+    #history-list .history-item:hover {
+      background: #e2e6ea;
+    }
+
+    /* ------------------------------
+       CONTENEDOR DE CHAT (DERECHA)
+    ------------------------------ */
+
     #chat-container {
+      flex: 1;
       display: flex;
       flex-direction: column;
       height: auto;
       min-height: 300px;
       box-sizing: border-box;
-      padding: 10px;
     }
 
     #messages {
@@ -83,6 +157,27 @@ WIDGET_HTML = """
       border-radius: 10px;
       padding: 10px;
       margin-bottom: 10px;
+    }
+
+    .msg-user {
+      text-align: right;
+      margin: 5px 0;
+      color: #0b7285;
+      white-space: pre-wrap;
+    }
+
+    .msg-bot {
+      text-align: left;
+      margin: 5px 0;
+      color: #333;
+      white-space: pre-wrap;
+    }
+
+    /* Imagen generada */
+    .img-message {
+      max-width: 100%;
+      border-radius: 10px;
+      margin: 8px 0;
     }
 
     #form {
@@ -109,28 +204,62 @@ WIDGET_HTML = """
       font-weight: bold;
     }
 
-    /* Imagen generada */
-    .img-message {
-      max-width: 100%;
-      border-radius: 10px;
-      margin: 8px 0;
+    /* ------------------------------
+       RESPONSIVE (CELULAR)
+    ------------------------------ */
+    @media (max-width: 720px) {
+      #layout {
+        flex-direction: column;
+      }
+      #sidebar {
+        width: 100%;
+        max-width: 100%;
+      }
+      #chat-container {
+        width: 100%;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <!-- CONTENEDOR PRINCIPAL DEL CHAT -->
-  <div id="chat-container">
+  <div id="layout">
 
-    <!-- Área donde se pintan los mensajes -->
-    <div id="messages"></div>
+    <!-- ===================== -->
+    <!--  SIDEBAR IZQUIERDA   -->
+    <!-- ===================== -->
+    <div id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">⭐ Favoritos</div>
+        <div id="favorites-list" class="sidebar-box">
+          <em>Vacío por ahora</em>
+        </div>
+      </div>
 
-    <!-- Formulario de envío -->
-    <form id="form">
-      <input id="input" autocomplete="off" placeholder="Escribe tu mensaje..." />
-      <button id="send-btn" type="submit">Enviar</button>
-    </form>
+      <div class="sidebar-section">
+        <div class="sidebar-title">🕒 Historial</div>
+        <div id="history-list" class="sidebar-box">
+          <em>Sin mensajes aún</em>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== -->
+    <!--  CONTENEDOR DEL CHAT -->
+    <!-- ===================== -->
+    <div id="chat-container">
+
+      <!-- Área donde se pintan los mensajes -->
+      <div id="messages"></div>
+
+      <!-- Formulario de envío -->
+      <form id="form">
+        <input id="input" autocomplete="off" placeholder="Escribe tu mensaje..." />
+        <button id="send-btn" type="submit">Enviar</button>
+      </form>
+
+    </div>
 
   </div>
 
@@ -144,6 +273,13 @@ WIDGET_HTML = """
     const input = document.getElementById("input");
     const sendBtn = document.getElementById("send-btn");
     const messages = document.getElementById("messages");
+
+    const historyListDiv = document.getElementById("history-list");
+    const favoritesListDiv = document.getElementById("favorites-list");
+
+    // Arrays para historial y favoritos (en memoria)
+    let sidebarHistory = [];
+    let favorites = [];
 
     // Estado inicial
     sendBtn.disabled = true;
@@ -162,6 +298,7 @@ WIDGET_HTML = """
         sendBtn.disabled = false;
         input.disabled = false;
         messages.innerHTML = "";
+        renderSidebar();
       } catch (e) {
         messages.innerHTML = "<b>No se pudo iniciar el chat.</b>";
       }
@@ -169,33 +306,69 @@ WIDGET_HTML = """
 
     initThread();
 
+    // --------------------------------------------
     // Ajuste automático del iframe en Blogger
+    // --------------------------------------------
     function resizeParent() {
       const height = document.body.scrollHeight;
       window.parent.postMessage({ widgetHeight: height }, "*");
     }
 
+    // --------------------------------------------
     // Pinta un mensaje en la ventana del chat
+    // --------------------------------------------
     function addMessage(content, type) {
       const div = document.createElement("div");
       div.className = type === "user" ? "msg-user" : "msg-bot";
-
-      if (type === "image") {
-        const img = document.createElement("img");
-        img.src = content;
-        img.className = "img-message";
-        div.appendChild(img);
-      } else {
-        div.textContent = content;
-      }
-
+      div.textContent = content;
       messages.appendChild(div);
       messages.scrollTop = messages.scrollHeight;
       resizeParent();
     }
 
-    resizeParent();
+    // --------------------------------------------
+    // Renderizar sidebar (historial + favoritos)
+    // --------------------------------------------
+    function renderSidebar() {
+      // Favoritos
+      favoritesListDiv.innerHTML = "";
+      if (favorites.length === 0) {
+        favoritesListDiv.innerHTML = "<em>Vacío por ahora</em>";
+      } else {
+        favorites.forEach((text, idx) => {
+          const item = document.createElement("div");
+          item.className = "favorite-item";
+          item.textContent = text;
+          favoritesListDiv.appendChild(item);
+        });
+      }
 
+      // Historial
+      historyListDiv.innerHTML = "";
+      if (sidebarHistory.length === 0) {
+        historyListDiv.innerHTML = "<em>Sin mensajes aún</em>";
+      } else {
+        sidebarHistory.forEach((text, idx) => {
+          const item = document.createElement("div");
+          item.className = "history-item";
+          item.textContent = text;
+
+          // Al hacer clic en un elemento del historial -> agregarlo a favoritos
+          item.onclick = () => {
+            if (!favorites.includes(text)) {
+              favorites.push(text);
+              renderSidebar();
+            }
+          };
+
+          historyListDiv.appendChild(item);
+        });
+      }
+
+      resizeParent();
+    }
+
+    resizeParent();
 
     // --------------------------------------------
     // MANEJAR ENVÍO DEL CHAT
@@ -207,8 +380,14 @@ WIDGET_HTML = """
       const text = input.value.trim();
       if (!text) return;
 
+      // Pintamos mensaje del usuario
       addMessage(text, "user");
       input.value = "";
+
+      // Añadimos al historial (sidebar)
+      const resumen = text.length > 60 ? text.slice(0, 57) + "..." : text;
+      sidebarHistory.push(resumen);
+      renderSidebar();
 
       // --------------------------------------------
       // DETECTAR SI EL USUARIO QUIERE IMAGEN
@@ -233,7 +412,14 @@ WIDGET_HTML = """
           const imgData = await imgRes.json();
 
           if (imgData.image_url) {
-            addMessage(imgData.image_url, "image");
+            const imgDiv = document.createElement("div");
+            imgDiv.className = "msg-bot";
+            const img = document.createElement("img");
+            img.src = imgData.image_url;
+            img.className = "img-message";
+            imgDiv.appendChild(img);
+            messages.appendChild(imgDiv);
+            messages.scrollTop = messages.scrollHeight;
           } else {
             addMessage("No pude generar la imagen.", "bot");
           }
@@ -259,9 +445,18 @@ WIDGET_HTML = """
         const data = await res.json();
 
         messages.innerHTML = "";
-        data.history.forEach(msg => {
+        sidebarHistory = [];
+
+        // Renderizar todo el historial que devuelve el backend
+        (data.history || []).forEach(msg => {
           addMessage(msg.text, msg.role === "user" ? "user" : "bot");
+          if (msg.role === "user") {
+            const resumenMsg = msg.text.length > 60 ? msg.text.slice(0, 57) + "..." : msg.text;
+            sidebarHistory.push(resumenMsg);
+          }
         });
+
+        renderSidebar();
 
       } catch {
         addMessage("Error conectando al backend.", "bot");
