@@ -18,16 +18,19 @@ def allow_iframe(response):
     response.headers["Content-Security-Policy"] = "frame-ancestors *"
     return response
 
+
 @app.route("/")
 def root():
     return "Backend funcionando wey!"
+
 
 @app.route("/hola")
 def hola():
     return jsonify({"msg": "Render funciona wey!"})
 
+
 # -------------------------------------------
-# WIDGET HTML (TU VERSIÓN SIN CAMBIOS VISUALES)
+# WIDGET HTML
 # -------------------------------------------
 
 WIDGET_HTML = """
@@ -112,17 +115,30 @@ WIDGET_HTML = """
   <script>
     let THREAD_ID = null;
 
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const sendBtn = document.getElementById("send-btn");
+    const messages = document.getElementById("messages");
+
+    sendBtn.disabled = true;
+    input.disabled = true;
+    messages.innerHTML = "<em>Iniciando chat…</em>";
+
     async function initThread() {
-      const res = await fetch("/thread", { method: "POST" });
-      const data = await res.json();
-      THREAD_ID = data.thread_id;
+      try {
+        const res = await fetch("/thread", { method: "POST" });
+        const data = await res.json();
+        THREAD_ID = data.thread_id;
+
+        sendBtn.disabled = false;
+        input.disabled = false;
+        messages.innerHTML = "";
+      } catch (e) {
+        messages.innerHTML = "<b>No se pudo iniciar el chat.</b>";
+      }
     }
 
     initThread();
-
-    const form = document.getElementById("form");
-    const input = document.getElementById("input");
-    const messages = document.getElementById("messages");
 
     function resizeParent() {
       const height = document.body.scrollHeight;
@@ -151,6 +167,8 @@ WIDGET_HTML = """
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (!THREAD_ID) return;
+
       const text = input.value.trim();
       if (!text) return;
 
@@ -191,7 +209,7 @@ WIDGET_HTML = """
         return;
       }
 
-      // Chat normal con historial
+      // Chat normal
       try {
         const res = await fetch("/chat", {
           method: "POST",
@@ -202,7 +220,6 @@ WIDGET_HTML = """
         const data = await res.json();
 
         messages.innerHTML = "";
-
         data.history.forEach(msg => {
           addMessage(msg.text, msg.role === "user" ? "user" : "bot");
         });
@@ -228,6 +245,7 @@ WIDGET_HTML = """
 def widget():
     return render_template_string(WIDGET_HTML)
 
+
 # -------------------------------------------
 # CREAR THREAD
 # -------------------------------------------
@@ -239,8 +257,9 @@ def create_thread():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+
 # -------------------------------------------
-# CHAT CON HISTORIAL (THREADS)
+# CHAT CON HISTORIAL
 # -------------------------------------------
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -287,7 +306,7 @@ def chat():
 
 
 # -------------------------------------------
-# ENDPOINT DE IMAGEN
+# IMAGEN
 # -------------------------------------------
 @app.route("/image", methods=["POST"])
 def image():
