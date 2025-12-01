@@ -142,6 +142,17 @@ def chat():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+# =======================================================
+#  ENDPOINT: LISTAR HISTORIAL DE THREADS (BASE DE DATOS)
+# =======================================================
+@app.route("/threads", methods=["GET"])
+def list_threads():
+    try:
+        threads = load_threads()
+        return jsonify({"threads": threads})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 
 # =======================================================
 #  ENDPOINT: GENERACIÓN DE IMÁGENES
@@ -178,3 +189,4 @@ def image():
 # =======================================================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
