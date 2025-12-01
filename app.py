@@ -1,16 +1,27 @@
+# =======================================================
+#  CHATGPT RENDER + BLOGGER WIDGET
+#  Backend Flask con Threads, Historial e Imagenes
+#  Autor: Daniel + ChatGPT (2025)
+# =======================================================
+
 from flask import Flask, request, jsonify, render_template_string
 import os
 from openai import OpenAI
 from flask_cors import CORS
 import time
 
+# -------------------------------------------
+# CONFIGURACIÓN BASE
+# -------------------------------------------
 app = Flask(__name__)
 CORS(app)
 
+# Cliente oficial OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+
 # -------------------------------------------
-# PERMITIR IFRAME
+# PERMITIR IFRAME (para que Blogger pueda mostrar el widget)
 # -------------------------------------------
 @app.after_request
 def allow_iframe(response):
@@ -19,6 +30,9 @@ def allow_iframe(response):
     return response
 
 
+# -------------------------------------------
+# ENDPOINTS BÁSICOS DE TEST
+# -------------------------------------------
 @app.route("/")
 def root():
     return "Backend funcionando wey!"
@@ -29,10 +43,9 @@ def hola():
     return jsonify({"msg": "Render funciona wey!"})
 
 
-# -------------------------------------------
-# WIDGET HTML
-# -------------------------------------------
-
+# =======================================================
+#  WIDGET HTML (Frontend que se incrusta en Blogger)
+# =======================================================
 WIDGET_HTML = """
 <!DOCTYPE html>
 <html lang="es">
@@ -41,6 +54,10 @@ WIDGET_HTML = """
   <title>ChatGPT Blogger</title>
 
   <style>
+    /* ------------------------------
+       ESTILOS DEL CHAT
+    ------------------------------ */
+
     body {
       margin: 0;
       padding: 0;
@@ -92,6 +109,7 @@ WIDGET_HTML = """
       font-weight: bold;
     }
 
+    /* Imagen generada */
     .img-message {
       max-width: 100%;
       border-radius: 10px;
@@ -101,10 +119,14 @@ WIDGET_HTML = """
 </head>
 
 <body>
+
+  <!-- CONTENEDOR PRINCIPAL DEL CHAT -->
   <div id="chat-container">
 
+    <!-- Área donde se pintan los mensajes -->
     <div id="messages"></div>
 
+    <!-- Formulario de envío -->
     <form id="form">
       <input id="input" autocomplete="off" placeholder="Escribe tu mensaje..." />
       <button id="send-btn" type="submit">Enviar</button>
@@ -112,6 +134,9 @@ WIDGET_HTML = """
 
   </div>
 
+  <!-- ---------------------------------------------------
+       LÓGICA DEL CHAT (Frontend)
+  ----------------------------------------------------- -->
   <script>
     let THREAD_ID = null;
 
@@ -120,10 +145,14 @@ WIDGET_HTML = """
     const sendBtn = document.getElementById("send-btn");
     const messages = document.getElementById("messages");
 
+    // Estado inicial
     sendBtn.disabled = true;
     input.disabled = true;
     messages.innerHTML = "<em>Iniciando chat…</em>";
 
+    // --------------------------------------------
+    // CREAR THREAD (conversación con OpenAI)
+    // --------------------------------------------
     async function initThread() {
       try {
         const res = await fetch("/thread", { method: "POST" });
@@ -140,11 +169,13 @@ WIDGET_HTML = """
 
     initThread();
 
+    // Ajuste automático del iframe en Blogger
     function resizeParent() {
       const height = document.body.scrollHeight;
       window.parent.postMessage({ widgetHeight: height }, "*");
     }
 
+    // Pinta un mensaje en la ventana del chat
     function addMessage(content, type) {
       const div = document.createElement("div");
       div.className = type === "user" ? "msg-user" : "msg-bot";
@@ -165,6 +196,10 @@ WIDGET_HTML = """
 
     resizeParent();
 
+
+    // --------------------------------------------
+    // MANEJAR ENVÍO DEL CHAT
+    // --------------------------------------------
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!THREAD_ID) return;
@@ -175,7 +210,9 @@ WIDGET_HTML = """
       addMessage(text, "user");
       input.value = "";
 
-      // Detectar imagen
+      // --------------------------------------------
+      // DETECTAR SI EL USUARIO QUIERE IMAGEN
+      // --------------------------------------------
       const wantsImage =
         text.toLowerCase().includes("imagen") ||
         text.toLowerCase().includes("crea") ||
@@ -209,7 +246,9 @@ WIDGET_HTML = """
         return;
       }
 
-      // Chat normal
+      // --------------------------------------------
+      // CHAT NORMAL (texto)
+      // --------------------------------------------
       try {
         const res = await fetch("/chat", {
           method: "POST",
@@ -238,17 +277,17 @@ WIDGET_HTML = """
 </html>
 """
 
-# -------------------------------------------
-# RENDER DEL WIDGET
-# -------------------------------------------
+# =======================================================
+#  ENDPOINT: RENDERIZAR WIDGET HTML
+# =======================================================
 @app.route("/widget")
 def widget():
     return render_template_string(WIDGET_HTML)
 
 
-# -------------------------------------------
-# CREAR THREAD
-# -------------------------------------------
+# =======================================================
+#  ENDPOINT: CREAR THREAD (inicia conversación)
+# =======================================================
 @app.route("/thread", methods=["POST"])
 def create_thread():
     try:
@@ -258,9 +297,9 @@ def create_thread():
         return jsonify({"error": str(e)}), 400
 
 
-# -------------------------------------------
-# CHAT CON HISTORIAL
-# -------------------------------------------
+# =======================================================
+#  ENDPOINT: CHAT CON HISTORIAL (Threads API)
+# =======================================================
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
@@ -271,17 +310,20 @@ def chat():
         return jsonify({"error": "Falta thread_id"}), 400
 
     try:
+        # Añadir mensaje del usuario al thread
         client.beta.threads.messages.create(
             thread_id=thread_id,
             role="user",
             content=prompt
         )
 
+        # Ejecutar el modelo
         run = client.beta.threads.runs.create(
             thread_id=thread_id,
             model="gpt-4o-mini"
         )
 
+        # Esperar respuesta
         while True:
             check = client.beta.threads.runs.retrieve(
                 thread_id=thread_id,
@@ -291,6 +333,7 @@ def chat():
                 break
             time.sleep(0.2)
 
+        # Obtener historial completo
         messages_list = client.beta.threads.messages.list(thread_id=thread_id)
 
         history = []
@@ -305,9 +348,9 @@ def chat():
         return jsonify({"error": str(e)}), 400
 
 
-# -------------------------------------------
-# IMAGEN
-# -------------------------------------------
+# =======================================================
+#  ENDPOINT: GENERACIÓN DE IMÁGENES
+# =======================================================
 @app.route("/image", methods=["POST"])
 def image():
     data = request.get_json()
@@ -322,6 +365,7 @@ def image():
         )
         url = result.data[0].url
 
+        # Guardar referencia de imagen en el historial
         if thread_id:
             client.beta.threads.messages.create(
                 thread_id=thread_id,
@@ -335,8 +379,8 @@ def image():
         return jsonify({"error": str(e)}), 400
 
 
-# -------------------------------------------
-# RUN LOCAL
-# -------------------------------------------
+# =======================================================
+#  EJECUCIÓN LOCAL (solo debug)
+# =======================================================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
