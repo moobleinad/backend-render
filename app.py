@@ -1,6 +1,6 @@
 # =======================================================
 #  CHATGPT PARA BLOGGER — BACKEND RENDER
-#  Versión simple (sin historial, sin favoritos)
+#  Versión FULL RESPONSIVE (sin historial, sin favoritos)
 #  Con comentarios y títulos claros
 # =======================================================
 
@@ -20,8 +20,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # =======================================================
-# 2. PERMITIR QUE EL SITIO SE CARGUE EN IFRAMES
-#    (Necesario para Blogger o no se verá nada)
+# 2. PERMITIR USO DENTRO DE IFRAMES (Blogger)
 # =======================================================
 @app.after_request
 def allow_iframe(response):
@@ -43,8 +42,7 @@ def hola():
 
 
 # =======================================================
-# 4. WIDGET HTML (EL FRONTEND DEL CHAT)
-#    Versión simple — un solo panel de chat
+# 4. WIDGET HTML — FULL RESPONSIVE
 # =======================================================
 WIDGET_HTML = """
 <!DOCTYPE html>
@@ -54,39 +52,37 @@ WIDGET_HTML = """
   <title>ChatGPT Blogger</title>
 
   <style>
-    /* ============================
-       ESTILOS GENERALES
-       ============================ */
     body {
       margin: 0;
       padding: 0;
       font-family: Arial;
       background: #f5f5f5;
-      height: 100%;
-      overflow: hidden;  /* mantiene siempre los 500px del iframe */
     }
 
-    /* ============================
-       CONTENEDOR PRINCIPAL DEL CHAT
-       ============================ */
+    /* ----------------------------
+       CONTENEDOR PRINCIPAL
+    ---------------------------- */
     #chat-container {
-      height: 500px;         /* altura exacta para que encaje en el iframe */
       display: flex;
       flex-direction: column;
-      padding: 10px;
+      height: auto;        /* 🔥 total responsive */
+      min-height: 300px;
       box-sizing: border-box;
+      padding: 10px;
     }
 
-    /* ============================
-       ZONA DE MENSAJES
-       ============================ */
+    /* ----------------------------
+       ÁREA DE MENSAJES
+    ---------------------------- */
     #messages {
       flex: 1;
       overflow-y: auto;
+      max-height: 60vh;    /* 🔥 ideal para móvil */
       background: white;
       border: 1px solid #ddd;
       border-radius: 10px;
       padding: 10px;
+      margin-bottom: 10px;
     }
 
     .msg-user {
@@ -103,15 +99,14 @@ WIDGET_HTML = """
       white-space: pre-wrap;
     }
 
-    /* ============================
-       INPUT DEL CHAT + BOTÓN
-       ============================ */
+    /* ----------------------------
+       INPUT + BOTÓN
+    ---------------------------- */
     #form {
       display: flex;
       gap: 10px;
-      margin-top: 10px;
       height: 45px;
-      flex-shrink: 0; /* evita que se achique */
+      flex-shrink: 0;
     }
 
     #input {
@@ -131,19 +126,14 @@ WIDGET_HTML = """
       font-weight: bold;
     }
   </style>
-
 </head>
 
 <body>
-  <!-- ============================
-       ESTRUCTURA DEL CHAT
-       ============================ -->
+
   <div id="chat-container">
 
-    <!-- Caja donde se pintan los mensajes -->
     <div id="messages"></div>
 
-    <!-- Formulario para enviar mensajes -->
     <form id="form">
       <input id="input" autocomplete="off" placeholder="Escribe tu mensaje..." />
       <button id="send-btn" type="submit">Enviar</button>
@@ -151,28 +141,38 @@ WIDGET_HTML = """
 
   </div>
 
-  <!-- ============================
-       LÓGICA DEL CHAT (JAVASCRIPT)
-       ============================ -->
   <script>
     const form = document.getElementById("form");
     const input = document.getElementById("input");
     const messages = document.getElementById("messages");
 
-    /* ------------------------------------------
-       FUNCIÓN PARA AGREGAR UN MENSAJE AL CHAT
-       ------------------------------------------ */
+    /* ----------------------------
+       Ajustar altura del iframe
+    ---------------------------- */
+    function resizeParent() {
+      const height = document.body.scrollHeight;
+      window.parent.postMessage({ widgetHeight: height }, "*");
+    }
+
+    resizeParent();  // primera llamada
+
+
+    /* ----------------------------
+       Pintar mensaje
+    ---------------------------- */
     function addMessage(text, type) {
       const div = document.createElement("div");
       div.className = type === "user" ? "msg-user" : "msg-bot";
       div.textContent = text;
       messages.appendChild(div);
-      messages.scrollTop = messages.scrollHeight;  // baja al final
+      messages.scrollTop = messages.scrollHeight;
+      resizeParent();
     }
 
-    /* ------------------------------------------
-       MANEJAR ENVÍO DEL MENSAJE
-       ------------------------------------------ */
+
+    /* ----------------------------
+       Manejar envío del chat
+    ---------------------------- */
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
@@ -196,6 +196,9 @@ WIDGET_HTML = """
         addMessage("Error conectando al backend.", "bot");
       }
     });
+
+    /* Ajusta si cambia tamaño en móvil */
+    window.addEventListener("resize", resizeParent);
   </script>
 
 </body>
@@ -204,7 +207,7 @@ WIDGET_HTML = """
 
 
 # =======================================================
-# 5. ENDPOINT PARA MOSTRAR EL WIDGET
+# 5. MOSTRAR EL WIDGET
 # =======================================================
 @app.route("/widget")
 def widget():
@@ -212,7 +215,7 @@ def widget():
 
 
 # =======================================================
-# 6. ENDPOINT DEL CHAT (LÓGICA GPT)
+# 6. ENDPOINT DEL CHAT GPT
 # =======================================================
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -236,7 +239,7 @@ def chat():
 
 
 # =======================================================
-# 7. RUN SERVER (SOLO LOCAL)
+# 7. RUN LOCAL
 # =======================================================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
