@@ -36,7 +36,7 @@ WIDGET_HTML = """
   <title>ChatGPT Blogger</title>
   <style>
     body { margin: 0; font-family: Arial; background: #f5f5f5; }
-    #chat-container { height: 100vh; display: flex; flex-direction: column; padding: 10px; }
+    #chat-container { height: 100%; display: flex; flex-direction: column; padding: 10px; }
     #messages { flex: 1; overflow-y: auto; border: 1px solid #ddd; background: white; padding: 10px; border-radius: 8px; }
     .msg-user { text-align: right; color: #0b7285; white-space: pre-wrap; margin: 6px 0; }
     .msg-bot { text-align: left; color: #333; white-space: pre-wrap; margin: 6px 0; }
@@ -135,3 +135,4 @@ def chat():
 # -------------------------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
